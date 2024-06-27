@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+
+if [ "$(id -u)" != 0 ]; then
+  echo "Root permissions required" >&2
+  exit 1
+fi
+
+file="/var/users"
+oldIFS=$IFS
+
+create_user() {
+  groupadd "$group"
+
+  if [ "$group" = "it" ] || [ "$group" = "security" ]; then
+    if ! grep -q "%$group" /etc/sudoers; then
+      cp /etc/sudoers{,.bkp}
+      echo "%$group ALL=(ALL) ALL" >> /etc/sudoers
+    fi
+    shell="/bin/bash"
+  fi
+
+  mkdir -p "/home/$group"
+  useradd "$user" -g "$group" -b "/home/$group" -s "$shell"
+}
+
+if [ ! -z "$2" ]; then
+  user="$1"
+  group="$2"
+  echo "Username: $user Group: $group"
+  create_user
+elif [ -f "$file" ]; then
+  while IFS=' ' read -r user group; do
+    echo "Username: $user Group: $group"
+    create_user
+  done < "$file"
+else
+  echo "Welcome!"
+  PS3="Select option: "
+  options=("Add user" "Show users" "Exit")
+
+  while true; do
+    select option in "${options[@]}"; do
+      case $option in
+        "Add user")
+          read -p "Enter username: " user
+          read -p "Enter groupname: " group
+          create_user
+          break ;;
+        "Show users")
+          cut -d: -f1 /etc/passwd ;;
+        "Exit")
+          exit ;;
+        *) echo "Wrong option" ;;
+      esac
+    done
+  done
+fi
