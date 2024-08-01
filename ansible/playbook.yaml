@@ -1,0 +1,15 @@
+- name: Apply my_user_role to manage users on localhost
+  hosts: localhost
+  become: yes
+  become_method: sudo
+  roles:
+    - role: my_user_role
+      vars:
+        users_list:
+          - name: alice
+            password: "{{ 'password1234' | password_hash('sha512') }}"
+            groups: "admin"
+            ssh_key: "ssh-rsa AAAAB3Nza... alice@myserver"
+            state: present
+          - name: bob
+            state: absent

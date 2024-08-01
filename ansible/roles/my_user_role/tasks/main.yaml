@@ -1,0 +1,51 @@
+---
+- name: Ensure required groups exist
+  ansible.builtin.group:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ users_list | selectattr('groups', 'defined') | map(attribute='groups') | unique | list }}"
+
+- name: Ensure users are present or absent
+  block:
+    - name: Manage user accounts
+      ansible.builtin.user:
+        name: "{{ item.name }}"
+        password: "{{ item.password | default(omit) }}"
+        groups: "{{ item.groups | default(omit) }}"
+        state: "{{ item.state | default('present') }}"
+        shell: "{{ item.shell | default(omit) }}"
+      loop: "{{ users_list }}"
+      when: item.state is not defined or item.state == "present"
+
+    - name: Ensure SSH key directory exists
+      file:
+        path: "/home/{{ item.name }}/.ssh"
+        state: directory
+        mode: '0700'
+        owner: "{{ item.name }}"
+        group: "{{ item.name }}"
+      loop: "{{ users_list }}"
+      when: item.ssh_key is defined and (item.state is not defined or item.state == "present")
+
+    - name: Add SSH key
+      copy:
+        content: "{{ item.ssh_key }}"
+        dest: "/home/{{ item.name }}/.ssh/authorized_keys"
+        owner: "{{ item.name }}"
+        group: "{{ item.name }}"
+        mode: '0600'
+      loop: "{{ users_list }}"
+      when: item.ssh_key is defined and (item.state is not defined or item.state == "present")
+
+    - name: Ensure users are absent
+      ansible.builtin.user:
+        name: "{{ item.name }}"
+        state: absent
+        remove: yes
+      loop: "{{ users_list }}"
+      when: item.state == "absent"
+  rescue:
+    - name: Report failure
+      debug:
+        msg: "Failed to manage user {{ item.name }}"
+      loop: "{{ users_list }}"
