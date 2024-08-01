@@ -5,12 +5,13 @@
   become: true
 
   tasks:
-    - name: download mysql
+    - name: download mysql and nginx
       package:
         name: "{{ item }}"
         state: present
       loop:
         - mysql-server
+        - nginx
 
     - name: start mysql
       service:
@@ -32,9 +33,3 @@
       notify:
         - Restart Nginx
 
-
-  handlers:
-    - name: restart nginx
-      service:
-        name: nginx
-        state: restarted
