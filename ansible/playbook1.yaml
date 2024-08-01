@@ -1,0 +1,40 @@
+---
+- name: download server
+  hosts: localhost
+  connection: local
+  become: true
+
+  tasks:
+    - name: download mysql
+      package:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - mysql-server
+
+    - name: start mysql
+      service:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+      loop:
+        - mysql
+
+    - name: download nginx
+      package:
+        name: nginx
+        state: present
+
+    - name: nginx configuration
+      template:
+        src: /etc/nginx/nginx.conf
+        dest: /etc/nginx/nginx.conf
+      notify:
+        - Restart Nginx
+
+
+  handlers:
+    - name: restart nginx
+      service:
+        name: nginx
+        state: restarted
