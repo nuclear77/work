@@ -7,7 +7,7 @@
       vars:
         users_list:
           - name: alice
-            password: "{{ 'password1234' | password_hash('sha512') }}"
+            password: "{{ '*' | password_hash('*') }}"
             groups: "admin"
             ssh_key: "ssh-rsa AAAAB3Nza... alice@myserver"
             state: present
